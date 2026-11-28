@@ -8,8 +8,7 @@ import { env } from '~/env';
 
 import { type File, formidable } from 'formidable';
 import { fileExists } from '~/utils/file';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { getUploadDir } from '~/server/uploads';
 
 /**
  * Store a multipart `file` upload as WebP (plus thumbnail) for the given user
@@ -18,8 +17,9 @@ const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
  * request beforehand.
  */
 export const handleUpload = async (req: NextApiRequest, res: NextApiResponse, userId: number) => {
-  if (!(await fileExists(UPLOAD_DIR))) {
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const uploadDir = getUploadDir();
+  if (!(await fileExists(uploadDir))) {
+    await fs.mkdir(uploadDir, { recursive: true });
   }
 
   const form = formidable({
@@ -37,7 +37,7 @@ export const handleUpload = async (req: NextApiRequest, res: NextApiResponse, us
       return res.status(400).json({ error: 'No file provided' });
     }
 
-    const userDir = path.join(UPLOAD_DIR, String(userId));
+    const userDir = path.join(uploadDir, String(userId));
 
     if (!(await fileExists(userDir))) {
       await fs.mkdir(userDir, { recursive: true });

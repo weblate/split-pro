@@ -1,4 +1,3 @@
-import { Trash2 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTranslation } from 'next-i18next';
 import { useRef, useState } from 'react';
