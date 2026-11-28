@@ -407,6 +407,31 @@ describe('phase 2 complete messages', () => {
     },
   );
 
+  it.each([
+    ['balance_list.pays_amount', 'you', 'other', 'You pay', 'to Anna'],
+    ['balance_list.pays_amount', 'other', 'you', 'Kim pays', 'to you'],
+    ['balance_list.pays_amount', 'other', 'other', 'Kim pays', 'to Anna'],
+    ['balance_list.gets_amount', 'other', 'you', 'You get', 'from Kim'],
+    ['balance_list.gets_amount', 'other', 'other', 'Anna gets', 'from Kim'],
+    ['balance_list.gets_amount', 'you', 'other', 'Anna gets', 'from you'],
+    ['settlement.overpay_hint', 'you', 'other', 'Anna will owe you', 'after this'],
+    ['settlement.overpay_hint', 'other', 'you', 'You will owe Kim', 'after this'],
+  ])(
+    'renders %s for payer %s and receiver %s with a markup amount',
+    async (key, payerRole, receiverRole, prefix, suffix) => {
+      const instance = await createTranslator('en');
+      const html = renderToStaticMarkup(
+        createElement(Trans, {
+          i18n: instance,
+          i18nKey: key,
+          values: { payerRole, receiverRole, payer: 'Kim', receiver: 'Anna' },
+          components: { amount: createElement('span', { className: 'amount' }, '€10') },
+        }),
+      );
+      expect(html).toBe(`${prefix} <span class="amount">€10</span> ${suffix}`);
+    },
+  );
+
   it('supports gender select with an unspecified fallback without inferring gender from names', async () => {
     const instance = await createTranslator('en', {
       en: {

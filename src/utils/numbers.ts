@@ -21,8 +21,12 @@ export const getCurrencyHelpers = ({
     formatter.formatToParts(4).find(({ type }) => type === 'currency')?.value ?? '';
   const thousandSeparator =
     formatter.formatToParts(11111111).find(({ type }) => type === 'group')?.value ?? '';
+  // Read the separator from the locale, not the currency formatter: a zero-decimal currency such as
+  // JPY never prints one, and falling back to '.' made '1.235 ¥' (de) parse as 1.235 yen.
   const decimalSeparator =
-    formatter.formatToParts(1.1).find(({ type }) => type === 'decimal')?.value ?? '.';
+    new Intl.NumberFormat(locale, { minimumFractionDigits: 1 })
+      .formatToParts(1.1)
+      .find(({ type }) => type === 'decimal')?.value ?? '.';
   const alternativeDecimalSeparator = decimalSeparator === '.' ? ',' : '.';
   const literalSeparator =
     formatter.formatToParts(1.1).find(({ type }) => type === 'literal')?.value ?? '';
@@ -273,18 +277,51 @@ export function currencyConversion({
   );
 }
 
+const NUMBER_PART_TYPES = new Set([
+  'integer',
+  'group',
+  'decimal',
+  'fraction',
+  'minusSign',
+  'plusSign',
+]);
+
 /**
  * Format a value with the formatter's locale-specific approximately sign
  * (en `~25%`, de `≈25 %`, fr `≃25 %`, ja `約25%`).
  *
  * Intl has no direct option for this. ECMA-402 applies the approximately sign when both ends
  * of `formatRange` format to the same string, so a range of equal values always gets it.
+ * Only the sign and its position are taken from the range: some engines (Node 22.22, V8 12.4)
+ * apply percent scaling twice inside range formatting and print `~2,500%` for 0.25, so the number
+ * itself always comes from `formatToParts`.
  * Browsers without `formatRange` (e.g. Firefox before 116) get CLDR's default sign, `~`.
  */
-export const formatApproximately = (formatter: Intl.NumberFormat, value: number) =>
-  'function' === typeof formatter.formatRange
-    ? formatter.formatRange(value, value)
-    : `~${formatter.format(value)}`;
+export const formatApproximately = (formatter: Intl.NumberFormat, value: number) => {
+  const fallback = `~${formatter.format(value)}`;
+  if (
+    'function' !== typeof formatter.formatRange ||
+    'function' !== typeof formatter.formatRangeToParts
+  ) {
+    return fallback;
+  }
+
+  const rangeParts = formatter.formatRangeToParts(value, value);
+  // TypeScript's Intl lib does not list the approximatelySign part type yet.
+  const signIndex = rangeParts.findIndex(({ type }) => 'approximatelySign' === (type as string));
+  if (-1 === signIndex) {
+    return fallback;
+  }
+
+  const parts = formatter.formatToParts(value).map(({ value: partValue }) => partValue);
+  /* A wrongly scaled range may have extra digit groups, so the sign's offset is counted from the
+     end it sits at. Everything outside the number (currency, %, spaces) matches on both sides. */
+  const isNumberPart = ({ type }: { type: string }) => NUMBER_PART_TYPES.has(type);
+  const signIsPrefix = signIndex < rangeParts.findIndex(isNumberPart);
+  const anchor = signIsPrefix ? signIndex : parts.length - (rangeParts.length - 1 - signIndex);
+  parts.splice(Math.min(Math.max(anchor, 0), parts.length), 0, rangeParts[signIndex]!.value);
+  return parts.join('');
+};
 
 /* Format a fraction (0.25) as a localized percentage string (25%) */
 export const toUIPercentage = (

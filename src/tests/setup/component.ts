@@ -37,3 +37,7 @@ Object.defineProperty(CSSStyleDeclaration.prototype, 'transform', {
 
 HTMLElement.prototype.setPointerCapture = () => undefined;
 HTMLElement.prototype.releasePointerCapture = () => undefined;
+
+// Radix Select relies on these, and jsdom does not implement them.
+HTMLElement.prototype.hasPointerCapture = () => false;
+HTMLElement.prototype.scrollIntoView = () => undefined;

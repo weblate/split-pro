@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, HandCoins, Pencil, PlusIcon } from 'lucide-react';
+import { ChevronLeftIcon, Pencil } from 'lucide-react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -10,8 +10,9 @@ import { DefaultSplitSettings } from '~/components/DefaultSplit/DefaultSplitSett
 import { ExpenseList } from '~/components/Expense/ExpenseList';
 import { DeleteFriend } from '~/components/Friend/DeleteFriend';
 import { Export } from '~/components/Friend/Export';
-import { SettleUp } from '~/components/Friend/Settleup';
+import { EntityActions, SettleUpButton } from '~/components/Layout/EntityActions';
 import MainLayout from '~/components/Layout/MainLayout';
+import { SettleUpDrawer } from '~/components/Settlement/SettleUpDrawer';
 import { EntityAvatar } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
 import { AppDrawer } from '~/components/ui/drawer';
@@ -44,6 +45,18 @@ const FriendPage: NextPageWithUser = ({ user }) => {
   const balances = api.user.getBalancesWithFriend.useQuery(
     { friendId: parsedFriendId },
     { enabled: Boolean(parsedFriendId) },
+  );
+  const groupsQuery = api.group.getAllGroups.useQuery();
+  const sharedGroups = useMemo(
+    () =>
+      (groupsQuery.data ?? [])
+        .map(({ group }) => group)
+        .filter(
+          (group) =>
+            !group.archivedAt && group.groupUsers.some((gu) => gu.userId === parsedFriendId),
+        )
+        .map(({ id, name }) => ({ id, name })),
+    [groupsQuery.data, parsedFriendId],
   );
   const upsertFriendDefaultSplitMutation = api.user.upsertFriendDefaultSplit.useMutation();
   const clearFriendDefaultSplitMutation = api.user.clearFriendDefaultSplit.useMutation();
@@ -173,37 +186,37 @@ const FriendPage: NextPageWithUser = ({ user }) => {
         {!friendQuery.data ? null : (
           <div className="mb-28 transition-discrete starting:opacity-0">
             <CumulatedBalances entityId={friendQuery.data.id} balances={aggregatedBalances} />
-            <div className="mt-6 mb-4 flex justify-center gap-2">
-              <SettleUp balances={balances.data} friend={friendQuery.data}>
-                <Button
-                  size="sm"
-                  className="flex w-[150px] items-center gap-2 rounded-md border bg-cyan-500 px-3 text-sm font-normal text-black focus:bg-cyan-600 focus:ring-0 focus-visible:outline-hidden lg:w-[180px]"
-                  disabled={!balances.data?.length}
-                >
-                  <HandCoins className="size-4" /> {t('actions.settle_up')}
-                </Button>
-              </SettleUp>
-              <Link href={`/add?friendId=${friendQuery.data.id}`}>
-                <Button size="sm" variant="secondary" responsiveIcon>
-                  <PlusIcon className="size-4" /> {t('actions.add_expense')}
-                </Button>
-              </Link>
-              <Export
-                loadExpenses={() =>
-                  collectPages((cursor) =>
-                    utils.client.expense.getExpensesWithFriend.query({
-                      friendId: parsedFriendId,
-                      cursor,
-                    }),
-                  )
-                }
-                fileName={`expenses_with_${displayName(friendQuery.data)}`}
-                currentUserId={user.id}
-                friendName={displayName(friendQuery.data) ?? ''}
-                friendId={friendQuery.data?.id ?? ''}
-                disabled={0 === expenseItems.length}
-              />
-            </div>
+            <EntityActions
+              addExpenseHref={`/add?friendId=${friendQuery.data.id}`}
+              settleUp={
+                <SettleUpDrawer
+                  context={{
+                    kind: 'friend',
+                    friend: friendQuery.data,
+                    balances: balances.data ?? [],
+                    sharedGroups,
+                  }}
+                  trigger={<SettleUpButton disabled={!balances.data} />}
+                />
+              }
+              extra={
+                <Export
+                  loadExpenses={() =>
+                    collectPages((cursor) =>
+                      utils.client.expense.getExpensesWithFriend.query({
+                        friendId: parsedFriendId,
+                        cursor,
+                      }),
+                    )
+                  }
+                  fileName={`expenses_with_${displayName(friendQuery.data)}`}
+                  currentUserId={user.id}
+                  friendName={displayName(friendQuery.data) ?? ''}
+                  friendId={friendQuery.data?.id ?? ''}
+                  disabled={0 === expenseItems.length}
+                />
+              }
+            />
             <ExpenseList
               expenses={expenseItems}
               contactId={parsedFriendId}
@@ -231,7 +244,7 @@ FriendPage.auth = true;
 
 export const getServerSideProps: GetServerSideProps = async (context) => ({
   props: {
-    ...(await customServerSideTranslations(context.locale, ['common'])),
+    ...(await customServerSideTranslations(context.locale, ['common', 'currencies'])),
   },
 });
 

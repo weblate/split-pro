@@ -32,6 +32,11 @@ const config = {
     localeDetection: false,
   },
   fallbackLng: 'en',
+  // Weblate stores untranslated strings as "", which i18next would otherwise render as-is.
+  returnEmptyString: false,
+  /* The server otherwise caches locale files for its lifetime, so `next dev` would keep serving
+     stale strings after a translation edit. */
+  reloadOnPrerender: 'development' === process.env.NODE_ENV,
   localePath: './public/locales',
   i18nFormat: {
     // Keep the existing route and Weblate locale codes while ICU uses valid BCP 47 tags.

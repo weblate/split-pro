@@ -91,6 +91,30 @@ describe('getCurrencyHelpers', () => {
       });
     });
 
+    describe('round trip through the displayed string', () => {
+      it.each([
+        ['de-DE', 'JPY', 123456n, '123.456 ¥'],
+        ['de-DE', 'KRW', 1234567n, '1.234.567 ₩'],
+        ['pl-PL', 'JPY', 1235n, '1235 JPY'],
+        ['en-US', 'JPY', 1235n, '¥1,235'],
+        ['de-DE', 'EUR', 123456n, '1.234,56 €'],
+      ])('parses %s %s %p back from %p', (locale, currency, value, displayed) => {
+        const { toUIString, toSafeBigInt, parseToCleanString } = getCurrencyHelpers({
+          locale,
+          currency,
+        });
+        expect(toUIString(value).replace(/\s/g, ' ')).toBe(displayed);
+        expect(toSafeBigInt(toUIString(value))).toBe(value);
+        // CurrencyInput reformats on blur and cleans on focus; neither may change the value.
+        expect(toSafeBigInt(parseToCleanString(toUIString(value)))).toBe(value);
+      });
+
+      it('drops typed decimals for a zero-decimal currency instead of misreading the separator', () => {
+        const { toSafeBigInt } = getCurrencyHelpers({ locale: 'de-DE', currency: 'JPY' });
+        expect(toSafeBigInt('12,7')).toBe(12n);
+      });
+    });
+
     describe('bg-BG locale', () => {
       const locale = 'bg-BG';
 

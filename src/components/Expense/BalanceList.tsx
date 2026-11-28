@@ -1,14 +1,13 @@
 import type { BalanceView, User } from '@prisma/client';
 import { Trans } from 'next-i18next';
 import { clsx } from 'clsx';
-import { type ComponentProps, Fragment, useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { EntityAvatar } from '~/components/ui/avatar';
 import { api } from '~/utils/api';
 import { BigMath } from '~/utils/numbers';
 
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
-import { CurrencyConversion } from '../Friend/CurrencyConversion';
-import { GroupSettleUp } from '../Friend/GroupSettleup';
+import type { SettleUpInitial } from '../Settlement/SettleUpDrawer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Button } from '../ui/button';
 import { CurrencyConversionIcon, SettleupIcon } from '../ui/categoryIcons';
@@ -22,12 +21,11 @@ interface UserWithBalance {
 export const BalanceList: React.FC<{
   groupBalances?: BalanceView[];
   users?: User[];
-}> = ({ groupBalances = [], users = [] }) => {
+  /** Opens the settle-up drawer prefilled with a balance row. */
+  onSettle?: (initial: SettleUpInitial) => void;
+}> = ({ groupBalances = [], users = [], onSettle }) => {
   const { displayName, t, getCurrencyHelpersCached } = useTranslationWithUtils();
   const userQuery = api.user.me.useQuery();
-
-  const addOrEditCurrencyConversionMutation = api.expense.addOrEditCurrencyConversion.useMutation();
-  const apiUtils = api.useUtils();
 
   const userMap = useMemo(() => {
     const res = users.reduce<Record<number, UserWithBalance>>((acc, user) => {
@@ -126,16 +124,11 @@ export const BalanceList: React.FC<{
                       const sender = 0 < amount ? friend : user;
                       const receiver = 0 < amount ? user : friend;
 
-                      const onSubmit: ComponentProps<
-                        typeof CurrencyConversion
-                      >['onSubmit'] = async (data) => {
-                        await addOrEditCurrencyConversionMutation.mutateAsync({
-                          ...data,
-                          senderId: sender.id,
-                          receiverId: receiver.id,
-                          groupId: groupBalances[0]!.groupId,
-                        });
-                        await apiUtils.invalidate();
+                      const initial: SettleUpInitial = {
+                        payerId: sender.id,
+                        receiverId: receiver.id,
+                        currency,
+                        amount: BigMath.abs(amount),
                       };
 
                       return (
@@ -146,44 +139,63 @@ export const BalanceList: React.FC<{
                           <div className="ml-5 flex cursor-pointer items-center gap-3 text-sm">
                             <EntityAvatar entity={friend} size={20} />
                             <div className="text-foreground">
-                              {t(0 < amount ? 'balance_list.pays' : 'balance_list.gets', {
-                                payerRole:
-                                  (0 < amount ? friend : user).id === userQuery.data?.id
-                                    ? 'you'
-                                    : 'other',
-                                receiverRole:
-                                  (0 < amount ? user : friend).id === userQuery.data?.id
-                                    ? 'you'
-                                    : 'other',
-                                payer: displayName(0 < amount ? friend : user),
-                                receiver: displayName(0 < amount ? user : friend),
-                                amount: getCurrencyHelpersCached(currency).toUIString(
-                                  BigMath.abs(amount),
-                                ),
-                              })}
+                              <Trans
+                                t={t}
+                                i18nKey={
+                                  0 < amount
+                                    ? 'balance_list.pays_amount'
+                                    : 'balance_list.gets_amount'
+                                }
+                                values={{
+                                  payerRole:
+                                    (0 < amount ? friend : user).id === userQuery.data?.id
+                                      ? 'you'
+                                      : 'other',
+                                  receiverRole:
+                                    (0 < amount ? user : friend).id === userQuery.data?.id
+                                      ? 'you'
+                                      : 'other',
+                                  payer: displayName(0 < amount ? friend : user),
+                                  receiver: displayName(0 < amount ? user : friend),
+                                }}
+                                components={{
+                                  amount: (
+                                    <span
+                                      className={clsx(
+                                        'text-right',
+                                        0 < amount ? 'text-emerald-500' : 'text-orange-600',
+                                      )}
+                                    >
+                                      {getCurrencyHelpersCached(currency).toUIString(
+                                        BigMath.abs(amount),
+                                      )}
+                                    </span>
+                                  ),
+                                }}
+                              />
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <GroupSettleUp
-                              friend={friend}
-                              user={user}
-                              amount={amount}
-                              currency={currency}
-                              groupId={groupBalances[0]!.groupId!}
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="size-8"
+                              aria-label={t('actions.settle_up')}
+                              disabled={!onSettle}
+                              onClick={() => onSettle?.({ ...initial, mode: 'settle' })}
                             >
-                              <Button size="icon" variant="secondary" className="size-8">
-                                <SettleupIcon className="size-4" />
-                              </Button>
-                            </GroupSettleUp>
-                            <CurrencyConversion
-                              onSubmit={onSubmit}
-                              amount={amount}
-                              currency={currency}
+                              <SettleupIcon className="size-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="size-8"
+                              aria-label={t('currency_conversion.title')}
+                              disabled={!onSettle}
+                              onClick={() => onSettle?.({ ...initial, mode: 'convert' })}
                             >
-                              <Button size="icon" variant="secondary" className="size-8">
-                                <CurrencyConversionIcon className="size-4" />
-                              </Button>
-                            </CurrencyConversion>
+                              <CurrencyConversionIcon className="size-4" />
+                            </Button>
                           </div>
                         </div>
                       );

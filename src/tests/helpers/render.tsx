@@ -6,8 +6,10 @@ import { RouterContext } from 'next/dist/shared/lib/router-context.shared-runtim
 import type { NextRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import React from 'react';
+import { I18nextProvider } from 'react-i18next';
 
 import { CurrencyHelpersProvider } from '~/contexts/CurrencyHelpersContext';
+import { testI18n } from './i18n';
 import { createTestQueryClient } from './queryClient';
 import { createMockRouter } from './router';
 import { createMockSession, createTestSession } from './session';
@@ -32,7 +34,8 @@ export const renderWithProviders = (ui: React.ReactElement, options: AppRenderOp
         <QueryClientProvider client={queryClient}>
           <CurrencyHelpersProvider>
             <ThemeProvider attribute="class" defaultTheme="dark">
-              {children}
+              {/* `Trans` needs an i18next instance from context to render translation markup. */}
+              <I18nextProvider i18n={testI18n}>{children}</I18nextProvider>
             </ThemeProvider>
           </CurrencyHelpersProvider>
         </QueryClientProvider>

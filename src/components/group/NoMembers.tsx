@@ -1,7 +1,9 @@
 import { type Group, type GroupUser } from '@prisma/client';
 import { Share, UserPlus } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'next-i18next';
+
+import { useInviteLink } from '~/hooks/useInviteLink';
 
 import { Button } from '~/components/ui/button';
 
@@ -14,17 +16,8 @@ interface NoMembersProps {
 
 const NoMembers: React.FC<NoMembersProps> = ({ group, enableSendingInvites }) => {
   const { t } = useTranslation();
-  const [isCopied, setIsCopied] = useState(false);
+  const { shareInviteLink, isCopied } = useInviteLink(group);
   const isArchived = !!group.archivedAt;
-
-  async function copyToClipboard() {
-    const inviteLink = `${window.location.origin}/join-group?groupId=${group.publicId}`;
-    await navigator.clipboard.writeText(inviteLink);
-    setIsCopied(true);
-    setTimeout(() => {
-      setIsCopied(false);
-    }, 2000);
-  }
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4">
@@ -39,7 +32,7 @@ const NoMembers: React.FC<NoMembersProps> = ({ group, enableSendingInvites }) =>
       <p className="text-gray-400">{t('ui.or')}</p>
       <Button
         className="flex w-[200px] items-center gap-2"
-        onClick={copyToClipboard}
+        onClick={() => void shareInviteLink()}
         disabled={isArchived}
       >
         {!isCopied ? (

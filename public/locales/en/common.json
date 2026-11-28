@@ -394,7 +394,8 @@
       "balances": "Balances",
       "expenses": "Expenses"
     },
-    "title": "Group outstanding balances"
+    "title": "Group outstanding balances",
+    "share_invite_link": "Share invite link"
   },
   "invite_message": {
     "in_splitpro": "in Splitpro",
@@ -551,7 +552,9 @@
   },
   "balance_list": {
     "pays": "{payerRole, select, you {You pay {amount} to {receiver}} other {{payer} pays {amount} to {receiverRole, select, you {you} other {{receiver}}}}}",
-    "gets": "{receiverRole, select, you {You get {amount} from {payer}} other {{receiver} gets {amount} from {payerRole, select, you {you} other {{payer}}}}}"
+    "gets": "{receiverRole, select, you {You get {amount} from {payer}} other {{receiver} gets {amount} from {payerRole, select, you {you} other {{payer}}}}}",
+    "pays_amount": "{payerRole, select, you {You pay <amount/> to {receiver}} other {{payer} pays <amount/> to {receiverRole, select, you {you} other {{receiver}}}}}",
+    "gets_amount": "{receiverRole, select, you {You get <amount/> from {payer}} other {{receiver} gets <amount/> from {payerRole, select, you {you} other {{payer}}}}}"
   },
   "expense_participant": {
     "gets": "{actor, select, you {<person/> get <amount/>} other {<person/> gets <amount/>}}",
@@ -597,5 +600,20 @@
     "edit_label": "Edit comment",
     "delete_confirm": "Delete this comment?",
     "error": "Could not save the comment"
+  },
+  "settlement": {
+    "amount": "Amount",
+    "convert_needs_balance": "Pick an open balance to convert it to another currency.",
+    "from": "From",
+    "mode_convert": "Convert",
+    "mode_settle": "Settle",
+    "no_group": "No group",
+    "no_open_balances": "Nothing is owed between them. Any amount you record becomes a new balance.",
+    "open_balances": "Open balances",
+    "overpay_hint": "{receiverRole, select, you {You will owe {payerRole, select, you {yourself} other {{payer}}} <amount/> after this} other {{receiver} will owe {payerRole, select, you {you} other {{payer}}} <amount/> after this}}",
+    "record_in": "Record in",
+    "select_person": "Select",
+    "swap": "Swap direction",
+    "to": "To"
   }
 }

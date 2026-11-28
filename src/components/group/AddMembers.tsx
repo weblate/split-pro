@@ -1,10 +1,11 @@
 import { type Group, type GroupUser } from '@prisma/client';
 import { clsx } from 'clsx';
-import { CheckIcon } from 'lucide-react';
+import { Check, CheckIcon, Share } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import { useInviteLink } from '~/hooks/useInviteLink';
 import { useTranslationWithUtils } from '~/hooks/useTranslationWithUtils';
 import { Button } from '~/components/ui/button';
 import { AppDrawer } from '~/components/ui/drawer';
@@ -41,6 +42,7 @@ const AddMembers: React.FC<{
   const addFriendMutation = api.user.inviteFriend.useMutation();
 
   const utils = api.useUtils();
+  const { shareInviteLink, isCopied } = useInviteLink(group);
 
   if (!group) {
     return null;
@@ -166,6 +168,22 @@ const AddMembers: React.FC<{
       }}
     >
       <div className="flex flex-col gap-4">
+        <Button
+          variant="outline"
+          className="w-full justify-center gap-2"
+          disabled={saving || Boolean(group.archivedAt)}
+          onClick={() => void shareInviteLink()}
+        >
+          {isCopied ? (
+            <>
+              <Check className="size-4" /> {t('group_details.copied')}
+            </>
+          ) : (
+            <>
+              <Share className="size-4" /> {t('group_details.share_invite_link')}
+            </>
+          )}
+        </Button>
         <Input
           className="w-full text-lg"
           placeholder={t('group_details.no_members.add_members_details.placeholder')}
